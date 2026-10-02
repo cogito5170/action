@@ -21,7 +21,7 @@
 일곱 저장소를 옆에 두고 기준선을 다시 돌렸다: 72 · 246 · 212 · 108 · 93 · 36 · 68, 모두 초록.
 
 ```
-사용자 ─► Autonomy.handle(task)                                       (새 저장소 autonomy, §6)
+사용자 ─► rlo.Autonomy.handle(task)                                   (cogito5170/rlo-SDK, §6)
             └► MS Runtime.handle ─► DC(MSStateReader) ─► LLM 제안 ─► Arbiter ∧ Guard ─► 실행기(action) ─► L0 action.*
                                                                                                 └► Health.verify ─► 원장
 남의 에이전트(Claude Code · Agent SDK) ─PreToolUse─► HookAdapter ─► Guard ─► deny | {}
@@ -132,15 +132,15 @@ Autonomy.versions()                                          # 동결 계약의 
 
 **권고**:
 - 지금처럼 **git sha 고정**으로 간다.
-- 묶음 패키지 **하나**(`autonomy`)를 두고, 그 안에서 일곱을 sha 로 고정한다.
+- 묶음 패키지 **하나**(`rlo-sdk`)를 두고, 그 안에서 일곱을 sha 로 고정한다.
 - 선택 설치(extras)는 `sensor` 하나만 둔다.
 
 | 갈림길 | 권고 | 고르지 않은 쪽의 비용 |
 |---|---|---|
 | git sha 고정 대 패키지 저장소(PyPI) | git sha | PyPI 에 올리려면 일곱을 모두 먼저 올리고 판번호 · 출시 절차를 일곱 번 둬야 한다. 공개 색인은 직접 참조(`name @ git+…`) 의존을 받지 않는 것으로 안다(PEP 440) — **확인 못 함**(이 환경에서 peps.python.org · packaging.python.org 가 막혀 있다) |
-| 묶음 하나 대 저장소마다 | 묶음 하나(`autonomy`) | 저장소마다 설치하게 하면 사용자가 일곱의 호환 sha 짝을 스스로 맞춰야 한다 |
+| 묶음 하나 대 저장소마다 | 묶음 하나(`rlo-sdk`) | 저장소마다 설치하게 하면 사용자가 일곱의 호환 sha 짝을 스스로 맞춰야 한다 |
 | guard · health 를 필수로 대 선택(extras)으로 | **필수** | 지금 MS 는 guard · health 가 import 되느냐로 행동이 조용히 바뀐다(ms `runtime.py:90, 95`). 선택으로 두면 같은 코드가 설치에 따라 다르게 돈다. enforce 는 어차피 guard 가 있어야 선다 |
-| Sensor 를 필수로 대 선택 | **선택**(`autonomy[sensor]`) | 필수로 하면 입구 한 바퀴에 쓰이지 않는 의존(Sensor 246 시험 · Telemetry 고정)이 늘 따라온다. Sensor 는 훅 길과 `$run.*` 에서만 쓴다 |
+| Sensor 를 필수로 대 선택 | **선택**(`rlo-sdk[sensor]`) | 필수로 하면 입구 한 바퀴에 쓰이지 않는 의존(Sensor 246 시험 · Telemetry 고정)이 늘 따라온다. Sensor 는 훅 길과 `$run.*` 에서만 쓴다 |
 | 훅 어댑터의 의존 | 없음(표준 라이브러리) | 어댑터는 dict 를 받아 dict 를 낸다. `claude-agent-sdk` 는 사용자 쪽 의존이다. SDK 가 그것을 요구하면 OQ-19(표준 라이브러리만)와 부딪힌다 |
 
 ## 5. 에이전트 SDK 훅 어댑터
@@ -224,17 +224,30 @@ Autonomy.versions()                                          # 동결 계약의 
 
 ## 6. 집
 
-**권고: 새 저장소 `cogito5170/autonomy`.**
+**정해졌다**(CMD-A7 덧붙임): 사용자가 **`cogito5170/rlo-SDK`** 를 만들었다. 이 설계안은 그 저장소를 전제로 한다.
 - 일곱 저장소를 sha 로 고정해 의존한다.
 - 아무도 이 저장소를 import 하지 않는다. 의존 그래프의 맨 위다.
+- 시제품 `sdk_draft/` 는 S2 에서 그 저장소로 옮기고, action 저장소에서는 지운다.
+
+### 이름 (권고)
+
+| 무엇 | 권고 | 까닭 |
+|---|---|---|
+| 배포 이름(pyproject `name`) | **`rlo-sdk`** | 저장소 이름과 같다. PyPI 에서 `rlo` · `rlo-sdk` · `rlo_sdk` 셋 다 지금 비어 있다(2026-10-02, `pypi.org/pypi/<이름>/json` 이 404) |
+| import 이름 | **`rlo`** | 짧고 저장소와 이어진다. `from rlo import Autonomy` |
+| 입구 클래스 | `Autonomy`(지금 시제품 이름 그대로) | 하는 일을 말한다 |
+| SDK 판본 문자열 | `rlo-sdk/0.x` | `versions()["sdk"]` |
+
+고르지 않은 쪽의 비용:
+- `rlo_sdk`(import): 길다. 배포 이름과 import 이름이 둘 다 `sdk` 를 품어 겹말이 된다.
+- `autonomy`(A7 보고의 가칭): 일반어라 PyPI · 다른 패키지와 겹칠 위험이 크다. 저장소 이름과도 이어지지 않는다.
+
+### 다른 집을 두었을 때의 비용 (기록)
 
 | 후보 | 비용 |
 |---|---|
 | action | action 은 표준 라이브러리만 쓰고, Policy(MS)를 import 하지 않는다(`BASELINE.md:227`). SDK 는 MS · DC · guard · health 를 모두 import 한다 |
 | MS | MS 는 Policy 다. 배포 묶음 · 훅 어댑터(남의 에이전트를 Guard 로 막는 길)는 Policy 의 일이 아니다. 훅 길은 MS 를 쓰지도 않는다(Guard · DC · Sensor 만) |
-| **새 저장소** | 저장소가 하나 더 생긴다(고정 · 통합할 것이 는다). 사용자가 만들어야 한다(세션은 저장소를 만들지 않는다) |
-
-시제품 `sdk_draft/` 는 S2 에서 그 저장소로 옮기고, 이 저장소에서는 지운다.
 
 ## 7. S2 지시 목록 (제안)
 
@@ -242,14 +255,14 @@ Autonomy.versions()                                          # 동결 계약의 
 
 | # | 저장소 | 할 일 | 끝난 기준 |
 |---|---|---|---|
-| S2-0 | 사용자 | 저장소 `cogito5170/autonomy` 를 만든다(세션 하나) | 저장소가 있다 |
+| S2-0 | 사용자 · baseline | **됐다** — 사용자가 `cogito5170/rlo-SDK` 를 만들었고 baseline 이 통합 브랜치를 열었다. 남은 것: 지을 세션을 정한다 | 세션이 있다 |
 | S2-1 | MS | ① `Runtime(risky=)` 를 Guard 모형까지 넘긴다(`guard_shadow.py:62-66`).<br>② 모듈 전역 id 셈(`telemetry.py:17` · `runtime.py:47`)을 Runtime 마다로 바꾼다.<br>③ L0 Recorder 에 Runtime 시계를 넘긴다(`l0.py:46`) | Runtime 둘에 같은 입력을 주면 결정 id 가 서로 같고, 한 Runtime 이 다른 Runtime 의 셈을 바꾸지 않는다. `risky` 를 바꾸면 Guard D 판정이 바뀐다(시험). 기존 212 초록 |
 | S2-2 | Telemetry | ① `tool.start` 에 `tool_use_id`(ref) 칸을 **더한다**(cc_jsonl · cc_stream).<br>② 실제 Claude Code 실행에서 `PostToolUse` 가 불릴 때 transcript 에 그 결과가 이미 있는지 잰다.<br>③ 늘려 읽기(`from_cc_jsonl(…, since=)`)를 볼 만한지 보고한다 | catalog 더하기 · 시험. 측정 보고(몇 번 중 몇 번 있었나) |
 | S2-3 | Sensor | ① L0 사건 목록 → 엔진 → export 를 한 번에 주는 편의 함수.<br>② MS `run_state` 어댑터(`.read` · `.subjects` = export `read` · `subjects`) | `$run.agent` 사후조건이 어댑터로 VERIFIED · NOT_VERIFIED 를 낸다(시험) |
 | S2-4 | DC | 필수 없음. 훅 길은 `execution_control` 을 그대로 쓴다 | — |
 | S2-5 | guard · health | 필수 없음 | — |
-| S2-7a | autonomy(SDK) | `sdk_draft/` 를 옮긴다. pyproject 에 일곱 sha 를 고정하고 extras 는 `sensor` 하나. 판본 목록 시험 · 예제 · README | `pip install git+…autonomy@<sha>` 로 깔고 예제 한 바퀴가 초록(옆 저장소 경로 없이). `versions()` 가 판본 목록과 같다. 변이 RED |
-| S2-7b | autonomy(SDK) | 훅 판정 `judge` 를 실제로 잇는다: transcript → cc_jsonl → Sensor → DC `execution_control` → DCView → guard. Claude Code 명령 훅 설정 예와 Agent SDK 콜백 예를 둔다 | 기록해 둔 transcript 로 시험한다. 실패 차례 뒤에 위험 도구가 오면 enforce 에서 deny(D), 정상이면 `{}`. shadow 는 늘 `{}`. `"allow"` 는 내지 않는다 |
+| S2-7a | rlo-SDK | `sdk_draft/` 를 옮긴다. pyproject 에 일곱 sha 를 고정하고 extras 는 `sensor` 하나. 판본 목록 시험 · 예제 · README | `pip install git+https://github.com/cogito5170/rlo-SDK@<sha>` 로 깔고 예제 한 바퀴가 초록(옆 저장소 경로 없이). `versions()` 가 판본 목록과 같다. 변이 RED |
+| S2-7b | rlo-SDK | 훅 판정 `judge` 를 실제로 잇는다: transcript → cc_jsonl → Sensor → DC `execution_control` → DCView → guard. Claude Code 명령 훅 설정 예와 Agent SDK 콜백 예를 둔다 | 기록해 둔 transcript 로 시험한다. 실패 차례 뒤에 위험 도구가 오면 enforce 에서 deny(D), 정상이면 `{}`. shadow 는 늘 `{}`. `"allow"` 는 내지 않는다 |
 
 ## 8. 이 저장소에서 한 것과 검증
 

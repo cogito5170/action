@@ -1,4 +1,4 @@
-"""SDK 입구 시제품(CMD-A7 · S1, BD-119) -- docs/SDK.md §1 의 모양을 증명하려는 **초안**이다. 집은 새 저장소다(SDK.md §6).
+"""SDK 입구 시제품(CMD-A7 · S1, BD-119) -- docs/SDK.md §1 의 모양을 증명하려는 **초안**이다. 집은 `cogito5170/rlo-SDK` 다(SDK.md §6) -- S2 에서 그리로 옮긴다.
 
 `action` 패키지 밖에 둔다: 이것은 MS(Policy) · DC · guard · health 를 import 하므로, action 안에 두면 action 의 규칙
 ("표준 라이브러리만" · "Action 은 Policy 를 import 하지 않는다", BASELINE.md:227)을 어긴다.
@@ -20,7 +20,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 
-SDK_DRAFT = "autonomy-draft/0"
+SDK_DRAFT = "rlo-sdk/0-draft"   # 집 cogito5170/rlo-SDK · 배포 rlo-sdk · import rlo (SDK.md §6)
 
 
 @dataclasses.dataclass
