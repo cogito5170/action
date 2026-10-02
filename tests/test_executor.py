@@ -215,6 +215,40 @@ class WithTelemetry(unittest.TestCase):
         else:
             self.assertNotIn("args_sig", d)
 
+    def test_same_args_same_sig(self):
+        """같은 (행동, 인자)면 같은 서명(열쇠 순서와 무관), 인자가 다르면 다른 서명. 칸 이름은 T17 의 `args` 다."""
+        catalog = siblings.load("telemetry", "telemetry", "telemetry.catalog")
+        if "args_sig" not in catalog.EVENTS["action.dispatch"]:
+            self.skipTest("T17 전 Telemetry")
+        import inspect
+        from action.executor import ARGS_PARAM
+        self.assertIn(ARGS_PARAM, inspect.signature(self.rec_mod.Recorder.action).parameters)
+        hashing = siblings.load("telemetry", "telemetry", "telemetry.hashing")
+        sink = self.ledger.MemorySink()
+        rec = self.rec_mod.Recorder("run-1", sink, source="inproc:test", hasher=hashing.Hasher(b"k" * 32))
+        for args in ({"level": 3, "note": "a"}, {"note": "a", "level": 3}, {"level": 2, "note": "a"}, {}):
+            execute(command(args=args), MODEL, {"throttle": Spy({})}, rec, EXECUTE)
+        sigs = [e["data"]["args_sig"] for e in sink.events if e["type"] == "action.dispatch"]
+        self.assertEqual(sigs[0], sigs[1])
+        self.assertNotEqual(sigs[0], sigs[2])
+        self.assertIsNotNone(sigs[3])                       # {} 도 '인자 없음을 봤다' 라 서명이 난다
+        self.assertEqual(len(set(sigs)), 3)
+
+    def test_l0map_sig_equals_recorder_sig(self):
+        """대응표(`dispatch_data`, Telemetry 의 서명 함수를 받는다)가 실행기 → Recorder 의 사건과 칸마다 같다."""
+        from action import l0map
+        catalog = siblings.load("telemetry", "telemetry", "telemetry.catalog")
+        if "args_sig" not in catalog.EVENTS["action.dispatch"]:
+            self.skipTest("T17 전 Telemetry")
+        hashing = siblings.load("telemetry", "telemetry", "telemetry.hashing")
+        h = hashing.Hasher(b"k" * 32)
+        sink = self.ledger.MemorySink()
+        rec = self.rec_mod.Recorder("run-1", sink, source="inproc:test", hasher=h)
+        c = command(args={"level": 2, "note": "한글"})
+        execute(c, MODEL, {"throttle": Spy({})}, rec, EXECUTE)
+        want = l0map.dispatch_data(c, c.action, h, sig=lambda n, a: hashing.tool_sig(n, a, h))
+        self.assertEqual(sink.events[0]["data"], want)
+
     def test_exception_path(self):
         rec, sink = self.recorder()
         x = execute(command(), MODEL, {"throttle": Spy(exc=ValueError("m"))}, rec, EXECUTE)
