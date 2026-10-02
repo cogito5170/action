@@ -7,7 +7,7 @@ L5 EXECUTE 의 저장소(baseline BD-25 · BD-95 · BD-108).
 
 - 계약 · L0 대응표 · 표와 다른 점: [`docs/CONTRACT.md`](docs/CONTRACT.md)
 - 실행기 설계(BD-108): [`docs/EXECUTOR.md`](docs/EXECUTOR.md) · 행동 명세 `action-spec/1`(CONTRACT §6) · 실행기 `action/executor.py`
-- SDK 설계안(S1, 제안): [`docs/SDK.md`](docs/SDK.md) — 시제품 `sdk_draft/`(action 패키지 밖, 옆 저장소가 있어야 돈다)
+- SDK 설계 기록(S1): [`docs/SDK.md`](docs/SDK.md) — 구현은 [`cogito5170/rlo-SDK`](https://github.com/cogito5170/rlo-SDK)
 - 술어 · 인자 검사 한 벌: [`docs/PREDICATE.md`](docs/PREDICATE.md) · `eval/predicate_swap.py`(MS · guard · health 복사본에서 바꿔 끼워 전체 시험)
 - 표준 라이브러리만. Python ≥ 3.10.
 

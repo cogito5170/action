@@ -1,5 +1,7 @@
 # SDK — 설계안 (CMD-A7 · S1 · BD-119)
 
+> **구현은 rlo-SDK `24d64bf` 로 옮겨졌다**(SDK CMD-K1 · BD-121). 이 문서는 S1 설계 기록으로 남긴다. 아래의 `sdk_draft/` · `tests/test_sdk_draft.py` 는 CMD-A8 에서 이 저장소에서 지웠다.
+
 이 문서는 **제안**이다. baseline 이 BD 로 정한 뒤 S2 로 나눠 지시한다.
 
 이 저장소에 지은 시제품(`sdk_draft/autonomy.py` · `sdk_draft/hooks.py`)은 접점을 증명하려는 것이다.
