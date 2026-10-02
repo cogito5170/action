@@ -75,7 +75,7 @@ ActionOutcome 에는 id 칸이 없다(관측이다). 내용 해시가 필요하�
 
 ## 4. L0 대응표
 
-L0 칸은 Telemetry `70b4feb` `telemetry/catalog.py` 에서 베꼈다(`l0map.L0_FIELDS`). Telemetry 가 옆에 있으면 시험이 지금 catalog 와 대조한다.
+L0 칸은 Telemetry `telemetry/catalog.py` 에서 베꼈다(`l0map.L0_FIELDS`). 처음 `70b4feb` 에서 베꼈고, T17 뒤 `89d2887` 로 맞췄다. Telemetry 가 옆에 있으면 시험이 지금 catalog 와 대조한다.
 
 ### `action.dispatch` ← ActionCommand (실행 시작)
 
@@ -85,6 +85,7 @@ L0 칸은 Telemetry `70b4feb` `telemetry/catalog.py` 에서 베꼈다(`l0map.L0_
 | `decision_ref` | `decision_ref` | 그대로 |
 | `action_type` | `action` | 실행기가 **실제로** 실행한 이름(보통 같다) |
 | `target` | `target` | `#` + Telemetry 열쇠 해시(12 hex). 평문은 L0 로 가지 않는다. null → null |
+| `args_sig` | `args` | Telemetry 가 짓는 서명(`tool_sig` 방식). 실행기는 `Recorder.action(args=…)` 로 넘기기만 한다(T17). 평문은 L0 로 가지 않는다 |
 
 ### `action.result` ← ActionOutcome (실행 끝)
 
@@ -96,7 +97,6 @@ L0 칸은 Telemetry `70b4feb` `telemetry/catalog.py` 에서 베꼈다(`l0map.L0_
 |---|---|
 | ActionIntent 전부 | 결정이다. L0 는 결정을 싣지 않는다(TELEMETRY.md 6 · 7 절) |
 | `ActionCommand.intent_id` | 결정 쪽 식별자. L0 는 `decision_ref` 하나로 잇는다 |
-| `ActionCommand.args` | 인자 평문은 L0 에 싣지 않는다 → 요청 R2 |
 | `ActionCommand.issued_at` | L0 봉투 `at` 이 dispatch 를 본 시각 |
 | `ActionCommand.deadline` | 우리 기한은 L0 에 없다 → 요청 R1 |
 
@@ -106,7 +106,7 @@ L0 칸은 Telemetry `70b4feb` `telemetry/catalog.py` 에서 베꼈다(`l0map.L0_
 |---|---|---|---|
 | R0 | `Recorder.action(...)` 이 `action_ref` 를 **받을 수 있게**. 지금은 `f"{run_id}/a{n}"` 를 스스로 만든다 | `action_ref = command_id` 여야 L0 사건에서 명령 · 의도 · 결정으로 거슬러 갈 수 있다. 지금 Recorder 를 쓰면 실행기가 command_id 를 L0 에 실을 길이 없다 | 실행기 전에 |
 | R1 | `action.dispatch.deadline_ms`(declared) | 실행기가 **스스로 선언한** 기한. Sensor 가 "기한 지났는데 결과 없음" 을 L0 만으로 가를 수 있다. 없으면 기한을 모른다 | 선택 |
-| R2 | `action.dispatch.args_sig`(measured, 열쇠 해시) | 같은 명령 되풀이(A8 계열) 탐지. `tool.*.tool_sig` 와 같은 방식 | 선택 |
+| R2 | `action.dispatch.args_sig`(measured, 열쇠 해시) | 같은 명령 되풀이(A8 계열) 탐지. `tool.*.tool_sig` 와 같은 방식 | **됨**(BD-108 · CMD-T17 `89d2887`) |
 
 또 하나(정보): Telemetry `recorder.py` 머리 주석의 예 `rec.action("RETURN", decision_ref=dc_id)` 는 `decision_ref` 에 **DC id** 를 넣는다.
 TELEMETRY.md 와 MS 는 `decision_ref = DecisionRecord.id` 다. 이 계약은 뒤의 것을 따른다.

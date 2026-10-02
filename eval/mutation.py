@@ -37,7 +37,9 @@ MUTANTS = [
     ("L0 로 결정 대신 의도를 잇는다", M, '"decision_ref": command.decision_ref', '"decision_ref": command.intent_id'),
     ("L0 결과의 못 봄을 False 로", M, "{k: getattr(outcome, k) for k in", '{k: (False if k == "is_error" and getattr(outcome, k) is None else getattr(outcome, k)) for k in'),
     ("베낀 L0 칸이 흘러감", M, '"output_chars", "elapsed_ms"),\n}', '"output_chars", "elapsed_ms", "stderr_chars"),\n}'),
-    ("빠진 칸 설명을 지움", M, '    "ActionCommand.args": ', '    "_args": '),
+    ("빠진 칸 설명을 지움", M, '    "ActionCommand.issued_at": ', '    "_issued_at": '),
+    ("인자 서명을 대응표에서 뺌", M, '    "args_sig": ("ActionCommand.args", "sig"),\n', ""),
+    ("서명 함수를 무시함", M, '"args_sig": None if sig is None else sig(action_type, dict(command.args))}', '"args_sig": None}'),
     # ── 행동 명세(action/spec.py) ──
     ("모르는 위험 등급을 받음", SP, "        if self.risk not in RISKS:", "        if False:"),
     ("사후조건에 속성 참조를 받음(V4)", SP, 'e += _pred_errors(c["pred"], f"postcondition[{i}].pred", refs=False)', 'e += _pred_errors(c["pred"], f"postcondition[{i}].pred", refs=True)'),

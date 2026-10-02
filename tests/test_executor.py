@@ -200,6 +200,21 @@ class WithTelemetry(unittest.TestCase):
         self.assertEqual(x.outcome.is_error, r["is_error"])
         self.assertIn("exit_code", sink.events[1]["unobserved"])
 
+    def test_args_sig_follows_telemetry(self):
+        """T17 이 있으면 dispatch 에 Telemetry 가 지은 서명이 실린다(평문 없음). 없으면 그 칸 자체가 없다."""
+        hashing = siblings.load("telemetry", "telemetry", "telemetry.hashing")
+        catalog = siblings.load("telemetry", "telemetry", "telemetry.catalog")
+        h = hashing.Hasher(b"k" * 32)
+        sink = self.ledger.MemorySink()
+        rec = self.rec_mod.Recorder("run-1", sink, source="inproc:test", hasher=h)
+        execute(command(args={"level": 3}), MODEL, {"throttle": Spy({})}, rec, EXECUTE)
+        d = sink.events[0]["data"]
+        if "args_sig" in catalog.EVENTS["action.dispatch"]:
+            self.assertEqual(d["args_sig"], hashing.tool_sig("throttle", {"level": 3}, h))
+            self.assertNotIn("level", str(sink.events[0]))
+        else:
+            self.assertNotIn("args_sig", d)
+
     def test_exception_path(self):
         rec, sink = self.recorder()
         x = execute(command(), MODEL, {"throttle": Spy(exc=ValueError("m"))}, rec, EXECUTE)

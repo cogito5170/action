@@ -44,7 +44,7 @@ class Table(unittest.TestCase):
             for k, (src, how) in table.items():
                 with self.subTest(ev, field=k):
                     self.assertIn(src, known)
-                    self.assertIn(how, ("copy", "hash", "actual"))
+                    self.assertIn(how, ("copy", "hash", "actual", "sig"))
 
     def test_every_form_field_is_mapped_or_explained(self):
         used = {src for t in (l0map.DISPATCH, l0map.RESULT) for src, _ in t.values()}
@@ -64,7 +64,11 @@ class Build(unittest.TestCase):
         c = command()
         d = l0map.dispatch_data(c, c.action, lambda s: "h" * 12)
         self.assertEqual(d, {"action_ref": c.id, "decision_ref": "dec-00112233aabbccdd", "action_type": "RETRY",
-                             "target": "#hhhhhhhhhhhh"})
+                             "target": "#hhhhhhhhhhhh", "args_sig": None})        # 서명 함수가 없으면 못 봄
+        seen = []
+        d = l0map.dispatch_data(c, c.action, lambda s: "h" * 12, sig=lambda n, a: seen.append((n, a)) or "s" * 12)
+        self.assertEqual((d["args_sig"], seen), ("s" * 12, [("RETRY", {"level": 2})]))
+        self.assertNotIn("level", str(d))                                     # 인자 평문이 L0 로 가지 않는다
         self.assertNotIn("svc:db", str(d))       # 겨냥 평문이 L0 로 가지 않는다
         self.assertIsNone(l0map.dispatch_data(command(target=None), "STOP", lambda s: "x")["target"])
 
