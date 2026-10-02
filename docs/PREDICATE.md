@@ -36,8 +36,7 @@
 |---|---|
 | MS | 술어 25 개 × 값 3 벌의 `holds`. 술어 39 개의 `check` 문제 목록이 **글까지** 같다. `props_of` 는 집합으로 같다. `all_hold` |
 | MS | 인자: params 7 × args 22 의 `check_args` 문제 목록이 **글까지** 같다 |
-| guard | `holds` · `check`(받느냐) · `props_of`(순서까지). 인자는 모르는 타입을 넣은 8 × 22 로 견준다 |
-| guard | 자기 술어 시험 파일(`tests/test_predicate.py`)이 import 한 줄만 바꿔 **그대로 지난다** |
+| guard | **대조가 아니라 같은 객체다**(CMD-A6). guard 가 이 한 벌을 import 한다(G5 `4bd7d14`). `guard.rules.predicate is action.predicate` · `guard.views.predicate is action.predicate` · `guard.rules.check_args is action.params.check_args`. guard 의 흔적 모듈은 읽지 않는다 |
 | health | 속성 참조 없는 술어의 `holds`. `check(refs=False, named=True)` 가 health 의 `check` 와 받느냐가 같다 |
 | health | 자기 술어 시험 파일이 얇은 덧씌움(위 모드)으로 **그대로 지난다**. 그 파일 안의 MS 대조 시험도 함께 돈다 |
 

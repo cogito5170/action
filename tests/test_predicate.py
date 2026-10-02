@@ -1,4 +1,4 @@
-"""술어 · 인자 검사 한 벌(CMD-A4) -- 자체 진리표 + MS · guard · health 의 벌과 같은 뜻인지 대조."""
+"""술어 · 인자 검사 한 벌(CMD-A4 · A6) -- 자체 진리표 + MS · health 의 벌과 같은 뜻인지 대조 + guard 가 이 한 벌을 쓰는지 확인."""
 import importlib.util
 import itertools
 import pathlib
@@ -84,24 +84,18 @@ class SameAsMS(unittest.TestCase):
                 self.assertEqual(P.all_hold(ps, v), self.ms.all_hold(ps, v))
 
 
-class SameAsGuard(unittest.TestCase):
-    def setUp(self):
-        self.g = siblings.load("guard", "guard", "guard.predicate")
-        if self.g is None:
+class GuardUsesTheOneCopy(unittest.TestCase):
+    """guard 는 action 의 한 벌을 import 한다(G5 · CMD-A6). 그래서 대조가 아니라 **같은 객체**인지 본다.
+    guard 의 흔적 모듈(guard/predicate.py · params.py)은 읽지 않는다 -- guard 가 지울 수 있게."""
+
+    def test_same_objects(self):
+        rules = siblings.load("guard", "guard", "guard.rules")
+        if rules is None:
             self.skipTest("guard 를 찾지 못함 -- GUARD_REPO")
-
-    def test_holds_check_props(self):
-        for p, v in itertools.product(PREDS, VALUES):
-            self.assertEqual(P.holds(p, v), self.g.holds(p, v), (p, v))
-        for p in PREDS + BAD + ODD_NAMES:
-            self.assertEqual(P.check(p) == [], self.g.check(p) == [], p)
-        self.assertEqual(P.props_of(PREDS), self.g.props_of(PREDS))
-
-    def test_guards_own_predicate_tests_pass_on_this_copy(self):
-        f = _sibling_file("guard", "guard", "tests/test_predicate.py")
-        src = f.read_text(encoding="utf-8").replace("from guard import predicate as P", "from action import predicate as P")
-        self.assertIn("from action import predicate as P", src)
-        _run_tests(self, src, "_guard_test_predicate")
+        views = siblings.load("guard", "guard", "guard.views")
+        self.assertIs(rules.predicate, P)
+        self.assertIs(views.predicate, P)
+        self.assertIs(rules.check_args, A.check_args)
 
 
 class SameAsHealth(unittest.TestCase):
@@ -176,13 +170,6 @@ class Params(unittest.TestCase):
         for ps, a in itertools.product(PARAMS, ARGS):
             ms = tools.ToolSpec("t", "*", params=ps).check_args(a)
             self.assertEqual(A.check_args(ps, a), ms, (ps, a))        # 글까지 같다
-
-    def test_same_as_guard(self):
-        g = siblings.load("guard", "guard", "guard.params")
-        if g is None:
-            self.skipTest("guard 를 찾지 못함 -- GUARD_REPO")
-        for ps, a in itertools.product(PARAMS + [{"y": {"type": "date"}}], ARGS):
-            self.assertEqual(A.check_args(ps, a), g.check_args(ps, a), (ps, a))
 
 
 if __name__ == "__main__":
