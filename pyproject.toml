@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "action-contract"
+version = "0.1.0"
+description = "Action (L5 EXECUTE) -- ActionIntent · ActionCommand · ActionOutcome 꼴. 표준 라이브러리만"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.setuptools]
+packages = ["action"]
