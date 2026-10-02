@@ -10,6 +10,7 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 F, C, M = "action/forms.py", "action/canonical.py", "action/l0map.py"
+SP, EX = "action/spec.py", "action/executor.py"
 # (이름, 파일, 바꿀 글, 바꿀 것)
 MUTANTS = [
     ("꼴을 연다(모르는 칸 허용)", F, 'errs = [f"모르는 칸 {k!r}" for k in sorted(set(d) - known, key=str)]', "errs = []"),
@@ -37,11 +38,30 @@ MUTANTS = [
     ("L0 결과의 못 봄을 False 로", M, "{k: getattr(outcome, k) for k in", '{k: (False if k == "is_error" and getattr(outcome, k) is None else getattr(outcome, k)) for k in'),
     ("베낀 L0 칸이 흘러감", M, '"output_chars", "elapsed_ms"),\n}', '"output_chars", "elapsed_ms", "stderr_chars"),\n}'),
     ("빠진 칸 설명을 지움", M, '    "ActionCommand.args": ', '    "_args": '),
+    # ── 행동 명세(action/spec.py) ──
+    ("모르는 위험 등급을 받음", SP, "        if self.risk not in RISKS:", "        if False:"),
+    ("사후조건에 속성 참조를 받음(V4)", SP, "        if not refs:", "        if False:"),
+    ("사후조건이 있는데 창 없이 받음", SP, "        if isinstance(self.postcondition, tuple) and self.postcondition and self.window_ms is None:", "        if False:"),
+    ("겨냥 없는 행동에 $target 을 받음", SP, '                if c["entity"] == "$target" and self.target_model is None:', "                if False:"),
+    ("모르는 연산을 받음", SP, "    if p[1] not in BINARY_OPS:", "    if False:"),
+    ("명세 꼴을 연다", SP, '        if bad:\n            raise ContractError("ActionSpec", [f"모르는 칸 {bad}"])', "        pass"),
+    ("겹치는 행동 이름을 받음", SP, "        if dup:", "        if False:"),
+    ("MS 투영이 사전조건을 버림", SP, '"params": spec.params, "preconditions": _plain(spec.preconditions), "risk": spec.risk}', '"params": spec.params, "preconditions": [], "risk": spec.risk}'),
+    ("Health 에 판본 없는 이름을 줌", SP, 'return {"spec": spec.ref,', 'return {"spec": spec.name,'),
+    # ── 실행기(action/executor.py) ──
+    ("shadow 가 처리기를 부름", EX, "    if mode == SHADOW:\n        return Execution(command.id, mode, False, None, plan)\n", ""),
+    ("모형에 없는 행동을 실행", EX, "    if model.get(command.action) is None:", "    if False:"),
+    ("L0 를 명령 id 로 잇지 않음", EX, "action_ref=command.id) if recorder", "action_ref=None) if recorder"),
+    ("보고 안 한 결과를 성공으로 메움", EX, 'vals = {k: rep[k] for k in ("is_error", "exit_code", "status_code") if rep.get(k) is not None}', 'vals = {"is_error": False, **{k: rep[k] for k in ("is_error", "exit_code", "status_code") if rep.get(k) is not None}}'),
+    ("처리기 결과를 검사하지 않음", EX, '            if bad:\n                raise ContractError("handler", bad)', "            pass"),
+    ("관측을 버림", EX, 'obs = list(rep.get("observations") or [])', "obs = []"),
+    ("MS 의 tool_error 를 못 읽음", EX, 'any(o.get("signal") == "tool_error" for o in obs)', "False"),
 ]
 
 
 def run(tree: pathlib.Path) -> bool:
-    r = subprocess.run([sys.executable, "-m", "unittest", "-q"], cwd=tree, capture_output=True, text=True)
+    # -B: 바이트코드를 쓰지 않는다. 같은 초 · 같은 크기의 변이가 낡은 .pyc 를 재사용해 헛 RED 를 내지 않게
+    r = subprocess.run([sys.executable, "-B", "-m", "unittest", "-q"], cwd=tree, capture_output=True, text=True)
     return r.returncode == 0
 
 
