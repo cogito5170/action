@@ -11,6 +11,7 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 F, C, M = "action/forms.py", "action/canonical.py", "action/l0map.py"
 SP, EX, PR, PA = "action/spec.py", "action/executor.py", "action/predicate.py", "action/params.py"
+SD, HK = "sdk_draft/autonomy.py", "sdk_draft/hooks.py"   # 옆 저장소가 있어야 잡힌다(<이름>_REPO)
 # (이름, 파일, 바꿀 글, 바꿀 것)
 MUTANTS = [
     ("꼴을 연다(모르는 칸 허용)", F, 'errs = [f"모르는 칸 {k!r}" for k in sorted(set(d) - known, key=str)]', "errs = []"),
@@ -77,6 +78,18 @@ MUTANTS = [
     ("최대를 보지 않음", PA, '        if ps.get("max") is not None and v > ps["max"]:', "        if False:"),
     ("모르는 인자를 받음", PA, 'out = [f"모르는 인자 {k}" for k in args if k not in params]', "out = []"),
     ("enum 에 목록 없이 받음", PA, '        if ps.get("type") == "enum" and not isinstance(ps.get("values"), list):', "        if False:"),
+    # ── SDK 시제품(sdk_draft/) -- 옆 저장소가 있을 때만 시험이 돈다 ──
+    ("입구가 DC 길을 묶지 않음", SD, "        self.runtime.state_reader = MSStateReader(builder, purpose)\n", ""),
+    ("입구가 guard_mode 를 버림", SD, "ledger_path=ledger, guard_mode=guard_mode,", 'ledger_path=ledger, guard_mode="shadow",'),
+    ("입구가 L0 를 버림", SD, 'kw = {"l0_sink": l0} if', 'kw = {} if False and'),
+    ("훅이 shadow 에서도 막음", HK, "            if self.mode == ENFORCE and res.verdict != \"ALLOW\":", "            if res.verdict != \"ALLOW\":"),
+    ("훅이 enforce 에서도 막지 않음", HK, "            if self.mode == ENFORCE and res.verdict != \"ALLOW\":", "            if False:"),
+    ("훅 판정 오류를 통과시킴", HK, 'return deny(f"guard error: {type(e).__name__}") if self.mode == ENFORCE else {}', "return {}"),
+    ("훅이 오류 메시지를 흘림", HK, 'deny(f"guard error: {type(e).__name__}")', 'deny(f"guard error: {e}")'),
+    ("훅이 ALLOW 에 allow 를 냄", HK, "            return {}\n        except Exception", '            return {"hookSpecificOutput": {"hookEventName": PRE, "permissionDecision": "allow"}}\n        except Exception'),
+    ("deny 꼴이 문서와 다름", HK, '{"hookEventName": PRE, "permissionDecision": "deny",', '{"hookEventName": PRE, "permissionDecision": "block",'),
+    ("실행 뒤 관측을 버림", HK, "        self.observe(input_data)\n", ""),
+    ("명령 훅이 허락에도 씀", HK, "    if out:\n        json.dump(out, stdout)", "    json.dump(out, stdout)"),
 ]
 
 
