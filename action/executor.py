@@ -19,6 +19,7 @@ dry-run 은 모드가 아니다: execute 에 **바깥에 닿지 않는 처리기
 """
 from __future__ import annotations
 
+import inspect
 import json
 import time
 from dataclasses import dataclass, field
@@ -29,6 +30,7 @@ from .spec import ActionModel
 SHADOW, EXECUTE = "shadow", "execute"
 MODES = (SHADOW, EXECUTE)
 REPORTED = ("observations", "is_error", "exit_code", "status_code", "output")
+ARGS_PARAM = "args"     # Recorder.action 이 인자를 받는 칸 이름(T17). T17 이 다른 이름을 고르면 여기 하나만 고친다
 
 # 실행하지 않은 까닭(닫힌 목록)
 UNKNOWN_ACTION, NO_HANDLER, BAD_MODE = "UNKNOWN_ACTION", "NO_HANDLER", "BAD_MODE"
@@ -44,6 +46,13 @@ class Execution:
     outcome: "ActionOutcome | None" = None    # execute 에서만
     observations: list = field(default_factory=list)     # 처리기가 돌려준 관측(불투명)
     raised: "BaseException | None" = None     # 처리기가 던진 예외(런타임이 메시지를 자기 관측으로 쓸 수 있게). L0 에는 종류 이름만
+
+    def to_dict(self) -> dict:
+        """원장에 적을 꼴(JSON). 관측의 내용과 예외 메시지는 싣지 않는다 -- 관측은 런타임의 상태 관리자로, 예외는 종류 이름만."""
+        return {"command_id": self.command_id, "mode": self.mode, "executed": self.executed, "refused": self.refused,
+                "would_dispatch": dict(self.would_dispatch),
+                "outcome": self.outcome.to_dict() if self.outcome is not None else None,
+                "observations": len(self.observations), "raised": type(self.raised).__name__ if self.raised else None}
 
 
 def _plan(command: ActionCommand) -> dict:
@@ -73,8 +82,13 @@ def execute(command: ActionCommand, model: ActionModel, handlers: dict, recorder
     vals: dict = {}
     obs: list = []
     raised = None
-    ctx = recorder.action(command.action, decision_ref=command.decision_ref, target=command.target,
-                          action_ref=command.id) if recorder is not None else _NoL0()
+    if recorder is None:
+        ctx = _NoL0()
+    else:
+        kw = {"decision_ref": command.decision_ref, "target": command.target, "action_ref": command.id}
+        if _takes(recorder.action, ARGS_PARAM):  # T17: 인자 서명은 Telemetry 가 짓는다(평문은 L0 에 남지 않는다). 없으면 넘기지 않는다
+            kw[ARGS_PARAM] = dict(command.args)
+        ctx = recorder.action(command.action, **kw)
     t0 = clock()
     try:
         with ctx as h:
@@ -109,6 +123,14 @@ def _report_errors(rep) -> "list[str]":
     if rep.get("output") is not None and not isinstance(rep["output"], str):
         e.append("output: 문자열이 아니다")
     return e
+
+
+def _takes(fn, name: str) -> bool:
+    try:
+        ps = inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return False
+    return name in ps or any(p.kind is inspect.Parameter.VAR_KEYWORD for p in ps.values())
 
 
 class _NoL0:

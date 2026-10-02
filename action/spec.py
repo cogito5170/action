@@ -12,7 +12,7 @@ guard `GuardModel` 의 ActionSpec(MS 의 다섯 칸 그대로) · Health 의 사
     verify_args(spec)     health.verify 의 spec · postcondition · window_ms
 
 **허가(grants) · 막는 위험 등급(risky) · 안전 동작 순서는 여기 없다.** 그것은 배치마다 다른 운영자 권한 · 가정이다(Guard · Model 설정).
-술어는 모양만 본다(연산 이름 · 칸 수). 참 · 거짓 판정은 MS · guard · health 의 술어 모듈이 한다 -- 그것을 한 벌로 모으는 일은 E2.
+술어 · 인자의 모양은 한 벌(action/predicate.py · action/params.py)로 본다. 참 · 거짓 판정도 그 한 벌의 `holds` 다.
 """
 from __future__ import annotations
 
@@ -20,35 +20,26 @@ import math
 import re
 from dataclasses import dataclass, field
 
+from . import params as P
+from . import predicate as Q
 from .canonical import check_json, digest
 from .forms import ContractError
 
 SPEC_SCHEMA = "action-spec/1"
 MODEL_SCHEMA = "action-model/1"
 RISKS = ("read", "local", "external", "irreversible")         # MS tools.py · guard views.py 와 같다
-BINARY_OPS = ("==", "!=", "<", "<=", ">", ">=", "in", "not_in")  # MS predicate.OPS 와 같다(시험이 대조)
-UNARY_OPS = ("exists", "missing")
-PARAM_KEYS = ("type", "min", "max", "values", "unit", "required")
-PARAM_TYPES = ("integer", "number", "string", "boolean", "enum")
+BINARY_OPS = tuple(Q.OPS)              # 술어 한 벌(action/predicate.py)의 연산
+UNARY_OPS = Q.UNARY
 ENTITY_REF = re.compile(r"^(\$target|\$run\.(agent|task|runtime)|[^$\s][^\s]*)$")   # health verification.py:74-79 와 같다
 NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]*$")
 
 
 def _pred_errors(p, where: str, refs: bool) -> "list[str]":
-    if not isinstance(p, (list, tuple)) or len(p) not in (2, 3):
-        return [f"{where}: [속성, 연산, 값] 이 아니다 ({p!r})"]
-    if not isinstance(p[0], str) or not p[0]:
-        return [f"{where}: 속성 이름이 문자열이 아니다 ({p[0]!r})"]
-    if len(p) == 2:
-        return [] if p[1] in UNARY_OPS else [f"{where}: 값 없는 연산은 {UNARY_OPS} 뿐 ({p[1]!r})"]
-    if p[1] not in BINARY_OPS:
-        return [f"{where}: 모르는 연산 {p[1]!r}"]
-    v = p[2]
-    if isinstance(v, dict):
-        if not refs:
-            return [f"{where}: 속성 참조는 쓸 수 없다(사후조건, V4)"]
-        return [] if set(v) <= {"prop", "mul"} and isinstance(v.get("prop"), str) else [f"{where}: 속성 참조 꼴 {v!r}"]
-    return [f"{where}: {e}" for e in check_json(v, "값")]
+    """모양 검사는 술어 한 벌의 것(named=True: 첫 칸이 빈 것 아닌 문자열). 값은 JSON 이어야 한다(해시)."""
+    e = [f"{where}: {x}" for x in Q.check(p, refs=refs, named=True)]
+    if not e and len(p) == 3 and not isinstance(p[2], dict):
+        e = [f"{where}: {x}" for x in check_json(p[2], "값")]
+    return e
 
 
 def _plain(p):
@@ -82,16 +73,9 @@ class ActionSpec:
             e.append(f"version: {self.version!r}")
         if self.target_model is not None and (not isinstance(self.target_model, str) or not self.target_model):
             e.append(f"target_model: {self.target_model!r}")
-        if not isinstance(self.params, dict):
-            e.append("params: 객체가 아니다")
-        else:
-            for k, ps in self.params.items():
-                if not isinstance(ps, dict) or set(ps) - set(PARAM_KEYS):
-                    e.append(f"params.{k}: 모르는 칸 {sorted(set(ps) - set(PARAM_KEYS)) if isinstance(ps, dict) else ps!r}")
-                elif ps.get("type") not in PARAM_TYPES:
-                    e.append(f"params.{k}.type: {ps.get('type')!r}")
-                else:
-                    e += [f"params.{k}: {x}" for x in check_json(ps)]
+        e += P.spec_errors(self.params)
+        if isinstance(self.params, dict):
+            e += [f"params: {x}" for x in check_json(self.params, "params")]
         if not isinstance(self.preconditions, tuple):
             e.append("preconditions: 목록이 아니다")
         else:

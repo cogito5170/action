@@ -66,6 +66,31 @@ class Form(unittest.TestCase):
         self.assertEqual(RISKS, ("read", "local", "external", "irreversible"))
 
 
+class Frozen(unittest.TestCase):
+    """action-spec/1 · action-model/1 동결(BD-108, CMD-A4). 바꿀 때는 판본을 올려 더하는 쪽으로만."""
+    GOLDEN = {"spec": "4c144c894aa97e67", "model": "d4a09c3c79212ec6"}
+
+    def test_golden(self):
+        self.assertEqual(spec().digest(), self.GOLDEN["spec"])
+        self.assertEqual(ActionModel("m1", (spec(name="b"), spec(name="a"))).digest(), self.GOLDEN["model"])
+
+    def test_fields_are_fixed(self):
+        self.assertEqual(sorted(spec().to_dict()), sorted(["schema", "name", "version", "target_model", "params",
+                                                           "preconditions", "risk", "postcondition", "window_ms",
+                                                           "description"]))
+        self.assertEqual(spec().to_dict()["schema"], "action-spec/1")
+        self.assertEqual(ActionModel("m1", ()).to_dict()["schema"], "action-model/1")
+
+    def test_params_follow_ms(self):
+        spec(params={"x": {"min": 0}})                          # type 이 없으면 number(MS PropertySpec 과 같다)
+        spec(params={"b": {"type": "bool", "required": False}})
+        for bad in ({"b": {"type": "boolean"}}, {"e": {"type": "enum"}}, {"x": {"min": "0"}}):
+            with self.subTest(bad=bad), self.assertRaises(ContractError):
+                spec(params=bad)
+        with self.assertRaises(ContractError):
+            spec(preconditions=(("status", "in", "hot"),))     # in 의 값은 목록(MS check 와 같다)
+
+
 class Model(unittest.TestCase):
     def test_sorted_and_unique(self):
         m = ActionModel("m1", (spec(name="b"), spec(name="a")))

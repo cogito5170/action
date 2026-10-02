@@ -58,6 +58,13 @@ class FakeRecorder:
         return Ctx()
 
 
+class FakeRecorderT17(FakeRecorder):
+    """T17 뒤의 모양: action 이 인자(args)를 받는다. 받은 것을 남긴다."""
+    def action(self, action_type, decision_ref=None, target=None, action_ref=None, args=None):
+        self.got_args = args
+        return super().action(action_type, decision_ref, target, action_ref)
+
+
 class Refusals(unittest.TestCase):
     def test_closed_side(self):
         for cmd, handlers, mode, why in ((command("reboot"), {"reboot": Spy({})}, EXECUTE, UNKNOWN_ACTION),
@@ -136,6 +143,25 @@ class Execute(unittest.TestCase):
         x = execute(command("escalate", None, {}), MODEL, {"escalate": Spy({})}, rec, EXECUTE)
         self.assertTrue(x.executed)
         self.assertIsNone(rec.events[0][1]["target"])
+
+    def test_args_go_to_recorder_only_after_t17(self):
+        rec = FakeRecorderT17()
+        execute(command(args={"level": 3}), MODEL, {"throttle": Spy({})}, rec, EXECUTE)
+        self.assertEqual(rec.got_args, {"level": 3})
+        rec = FakeRecorder()                                         # T17 전: 넘기지 않는다(넘기면 TypeError)
+        x = execute(command(args={"level": 3}), MODEL, {"throttle": Spy({})}, rec, EXECUTE)
+        self.assertTrue(x.executed)
+        self.assertIsNone(x.outcome.exception)
+
+    def test_to_dict_for_the_ledger(self):
+        import json
+        x = execute(command(), MODEL, {"throttle": Spy(exc=KeyError("secret"))}, FakeRecorder(), EXECUTE)
+        d = x.to_dict()
+        self.assertEqual(json.loads(json.dumps(d)), d)
+        self.assertEqual((d["raised"], d["outcome"]["exception"], d["observations"]), ("KeyError", "KeyError", 0))
+        self.assertNotIn("secret", json.dumps(d))
+        sh = execute(command(), MODEL, {"throttle": Spy({})}).to_dict()
+        self.assertEqual((sh["mode"], sh["executed"], sh["outcome"]), (SHADOW, False, None))
 
     def test_ms_handler_reads_tool_error(self):
         h = ms_handler(lambda t, a: [{"entity": t, "signal": "tool_error", "value": "boom"}])

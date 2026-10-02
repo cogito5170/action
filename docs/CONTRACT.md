@@ -115,3 +115,35 @@ TELEMETRY.md 와 MS 는 `decision_ref = DecisionRecord.id` 다. 이 계약은 �
 
 지은 것: 꼴 셋 · 정준 JSON · 대응표(데이터 + 사건 칸을 채우는 두 함수). 짓지 않은 것: 실행기 · Guard · 네트워크 · L0 Recorder 배선.
 표준 라이브러리만(OQ-19). MS · Telemetry 파일은 고치지 않았다.
+
+## 6. `action-spec/1` · `action-model/1` (BD-108 동결, CMD-A4)
+
+행동 명세의 집이다(EXECUTOR §1).
+- 코드: [`action/spec.py`](../action/spec.py).
+- 술어 · 인자 모양은 한 벌([`action/predicate.py`](../action/predicate.py) · [`action/params.py`](../action/params.py))로 본다. 세 벌과의 차이는 [`docs/PREDICATE.md`](PREDICATE.md) 에 있다.
+
+### ActionSpec (`action-spec/1`)
+
+| 칸 | 타입 | 규칙 |
+|---|---|---|
+| `name` | str | `^[A-Za-z][A-Za-z0-9_.-]*$` |
+| `version` | str | 빈 것 · `@` · 빈칸 없음. `ref` = `"이름@판본"` 은 Health `spec` 이다 |
+| `target_model` | str \| null | `"*"` 는 아무 모형, null 은 겨냥 없는 행동 |
+| `params` | 객체 | 이름 → {type(number · integer · string · bool · enum, 없으면 number), min, max, values, unit, required} |
+| `preconditions` | [술어] | `check(named=True)`. 속성 참조를 받는다 |
+| `risk` | read · local · external · irreversible | |
+| `postcondition` | [{entity, pred}] | entity 는 `$target` · `$run.agent/task/runtime` · 실체 id. pred 는 `check(refs=False, named=True)`. 겨냥 없는 행동에 `$target` 은 거절 |
+| `window_ms` | 수 > 0 \| null | 사후조건이 있으면 있어야 한다 |
+| `description` | str | |
+| `schema` | `action-spec/1` | |
+
+### ActionModel (`action-model/1`)
+
+- 칸: `version` · `specs`. 이름은 겹치지 않고, 이름 순으로 정렬해 싣는다.
+- 허가 · 막는 위험 등급 · 안전 동작 순서는 **여기 없다**. 운영자 설정이다.
+
+### 동결과 시험
+
+- 닫힌 꼴이다. GOLDEN 해시는 `tests/test_spec.py` 의 `Frozen` 에 있다(spec `4c144c894aa97e67` · model `d4a09c3c79212ec6`).
+- 바꿀 것은 판본을 올려 더하는 쪽으로만 바꾼다.
+- `action-contract/1` 의 세 꼴과 GOLDEN 은 그대로다.

@@ -1,6 +1,14 @@
 # EXECUTOR — 실행기 설계안 (CMD-A3 · E1 · BD-107)
 
-이 문서는 **제안**이다. baseline 이 BD 로 정한 뒤 E2 로 나눠 지시한다.
+**상태**:
+- BD-108 로 받아들여졌다.
+  - Q3 은 DC 길로 좁힌다.
+  - 집은 action 이다.
+  - 술어는 한 벌로 모은다.
+  - `args_sig` 를 살린다(T17).
+- A4 에서 `action-spec/1` · `action-model/1` 을 동결했다. 술어 · 인자 검사를 한 벌로 모았다([`PREDICATE.md`](PREDICATE.md)). 실행기를 마감했다.
+
+아래는 E1 때의 설계안이다.
 이 저장소에 지은 코드(`action/spec.py` · `action/executor.py`)는 접점을 증명하려는 것이다. 부작용이 없고, 다른 저장소의 코드는 그대로다.
 
 읽은 판본은 `STAGES.md` 의 stage-2 다.
@@ -156,6 +164,13 @@ handler(target, args) -> {"observations"?, "is_error"?, "exit_code"?, "status_co
 - 모르는 모드(`BAD_MODE`)
 
 허가 판정은 여기서 하지 않는다. Guard 를 지난 명령만 온다는 것이 전제다.
+
+### 인자 서명 (A4, T17)
+
+- `recorder.action` 이 `args` 칸을 받으면 명령의 인자를 넘긴다. 해시(`args_sig`)는 Telemetry 가 짓고, 평문은 L0 에 남지 않는다.
+- 받지 않으면(T17 전) 넘기지 않는다. 칸 이름은 `executor.ARGS_PARAM` 하나다.
+- T17 이 다른 이름을 고르면 그 한 곳만 고친다.
+- `Execution.to_dict()` 는 원장에 적을 꼴이다. 관측의 내용과 예외 메시지는 싣지 않는다.
 
 ### L0 가 없을 때
 

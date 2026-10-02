@@ -1,10 +1,12 @@
 """Action -- L5 EXECUTE 의 꼴(계약). BD-25 · BD-95.
 
-지금은 꼴 셋뿐이다: ActionIntent · ActionCommand · ActionOutcome. 실행기 · Guard 는 꼴이 계약 동결된 뒤(baseline BASELINE §10.2).
+꼴: ActionIntent · ActionCommand · ActionOutcome (action-contract/1, BD-96) · ActionSpec · ActionModel (action-spec/1 · action-model/1, BD-108).
+한 벌: 술어(predicate) · 인자 검사(params). 실행기: executor (shadow · execute). docs/CONTRACT.md · docs/EXECUTOR.md · docs/PREDICATE.md
 """
 from . import l0map
 from .canonical import canonical_json, check_json, digest
 from .forms import (AUTHOR_KINDS, FORMS, SPEC, ActionCommand, ActionIntent, ActionOutcome, ContractError)
+from .spec import MODEL_SCHEMA, SPEC_SCHEMA, ActionModel, ActionSpec
 
 __all__ = ["AUTHOR_KINDS", "FORMS", "SPEC", "ActionCommand", "ActionIntent", "ActionOutcome", "ContractError",
-           "canonical_json", "check_json", "digest", "l0map"]
+           "MODEL_SCHEMA", "SPEC_SCHEMA", "ActionModel", "ActionSpec", "canonical_json", "check_json", "digest", "l0map"]

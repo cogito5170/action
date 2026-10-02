@@ -1,10 +1,13 @@
 # action
 
-L5 EXECUTE 의 저장소(baseline BD-25 · BD-95). 지금은 **꼴(계약)만** 있다: `ActionIntent` · `ActionCommand` · `ActionOutcome`.
-실행기 · Guard 는 꼴이 계약 동결된 뒤에 짓는다(baseline `BASELINE.md` §10.2).
+L5 EXECUTE 의 저장소(baseline BD-25 · BD-95 · BD-108).
+
+- 꼴: `ActionIntent` · `ActionCommand` · `ActionOutcome`(`action-contract/1`) · `ActionSpec` · `ActionModel`(`action-spec/1` · `action-model/1`).
+- 술어 · 인자 검사 한 벌, 실행기(shadow · execute).
 
 - 계약 · L0 대응표 · 표와 다른 점: [`docs/CONTRACT.md`](docs/CONTRACT.md)
-- 실행기 설계안(E1, 제안): [`docs/EXECUTOR.md`](docs/EXECUTOR.md) — `action/spec.py` · `action/executor.py` 는 접점 증명용(부작용 없음)
+- 실행기 설계(BD-108): [`docs/EXECUTOR.md`](docs/EXECUTOR.md) · 행동 명세 `action-spec/1`(CONTRACT §6) · 실행기 `action/executor.py`
+- 술어 · 인자 검사 한 벌: [`docs/PREDICATE.md`](docs/PREDICATE.md) · `eval/predicate_swap.py`(MS · guard · health 복사본에서 바꿔 끼워 전체 시험)
 - 표준 라이브러리만. Python ≥ 3.10.
 
 ```
