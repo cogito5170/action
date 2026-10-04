@@ -23,7 +23,7 @@ INTENT_SCHEMA = "action-intent/1"
 COMMAND_SCHEMA = "action-command/1"
 OUTCOME_SCHEMA = "action-outcome/1"
 
-AUTHOR_KINDS = ("rule", "llm", "human")
+AUTHOR_KINDS = ("rule", "llm", "human", "peer")
 POLICY_REF = re.compile(r"^[^@\s]+@[^@\s]+$")          # "<정책 이름>@<판본>"
 INTENT_ID = re.compile(r"^int-[0-9a-f]{16}$")
 COMMAND_ID = re.compile(r"^cmd-[0-9a-f]{16}$")
@@ -80,6 +80,7 @@ class _Form:
     SCHEMA: str
     ID: "str | None" = None          # 내용 해시로 정해지는 id 칸 이름(없으면 None)
     ID_PREFIX: str = ""
+    OPTIONAL: frozenset = frozenset()   # None 이면 몸(body)에서 빠지는 칸 -- 옛 해시를 지킨다
 
     def _errors(self) -> "list[str]":
         raise NotImplementedError
@@ -91,7 +92,8 @@ class _Form:
 
     def body(self) -> dict:
         """id 를 뺀 칸 전부 -- 해시의 입력."""
-        return {f.name: _plain(getattr(self, f.name)) for f in fields(self)}
+        return {f.name: _plain(getattr(self, f.name)) for f in fields(self)
+                if not (f.name in self.OPTIONAL and getattr(self, f.name) is None)}
 
     def digest(self) -> str:
         return digest(self.body())
@@ -108,12 +110,12 @@ class _Form:
         if not isinstance(d, dict):
             raise ContractError(name, [f"객체가 아니다 ({type(d).__name__})"])
         known = {f.name for f in fields(cls)} | ({cls.ID} if cls.ID else set())
-        required = {f.name for f in fields(cls)} | ({cls.ID} if cls.ID else set())
+        required = ({f.name for f in fields(cls)} - cls.OPTIONAL) | ({cls.ID} if cls.ID else set())
         errs = [f"모르는 칸 {k!r}" for k in sorted(set(d) - known, key=str)]
         errs += [f"빠진 칸 {k!r}" for k in sorted(required - set(d))]
         if errs:
             raise ContractError(name, errs)
-        obj = cls(**{f.name: d[f.name] for f in fields(cls)})
+        obj = cls(**{f.name: d[f.name] for f in fields(cls) if f.name in d})
         if cls.ID and d[cls.ID] != obj.to_dict()[cls.ID]:
             raise ContractError(name, [f"{cls.ID}: 내용과 맞지 않는다 ({d[cls.ID]!r} ≠ {obj.to_dict()[cls.ID]!r})"])
         return obj
@@ -143,10 +145,12 @@ class ActionIntent(_Form):
     args: dict
     rationale: str
     used_keys: tuple             # 결정이 쓴 DC 키. 집합이다 -- 정렬해 둔다(같은 집합 = 같은 해시)
-    author_kind: str             # rule · llm · human
+    author_kind: str             # rule · llm · human · peer
     schema: str = INTENT_SCHEMA
+    msg_id: "str | None" = None  # author_kind=peer 일 때 이 의도를 낳은 동료 메시지의 id. 그때만 필수, 그 밖엔 None(해시에서 빠진다)
 
     SCHEMA = INTENT_SCHEMA
+    OPTIONAL = frozenset({"msg_id"})
     ID = "intent_id"
     ID_PREFIX = "int-"
 
@@ -170,6 +174,13 @@ class ActionIntent(_Form):
             e.append("used_keys: 겹치는 키")
         if self.author_kind not in AUTHOR_KINDS:
             e.append(f"author_kind: {self.author_kind!r} (기대 {AUTHOR_KINDS})")
+        if self.author_kind == "peer":
+            # 동료 메시지는 그 자체로 행동이 되지 않는다: DC · 쓴 키 · 원 메시지가 없으면 디스패치 전에 거절
+            _text(self.msg_id, "msg_id", e)
+            if not self.used_keys:
+                e.append("used_keys: author_kind=peer 는 비어 있으면 안 된다")
+        elif self.msg_id is not None:
+            e.append("msg_id: author_kind=peer 일 때만 쓴다")
         return e
 
 
